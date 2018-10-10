@@ -1,0 +1,92 @@
+#!/sbin/runscript
+
+# backward compatibility for existing gentoo layout 
+#
+if [ -d "/var/lib/mynt/.mynt" ]; then
+	myntd_DEFAULT_DATADIR="/var/lib/mynt/.mynt"
+else
+	myntd_DEFAULT_DATADIR="/var/lib/myntd"
+fi
+
+myntd_CONFIGFILE=${myntd_CONFIGFILE:-/etc/mynt/mynt.conf}
+myntd_PIDDIR=${myntd_PIDDIR:-/var/run/myntd}
+myntd_PIDFILE=${myntd_PIDFILE:-${myntd_PIDDIR}/myntd.pid}
+myntd_DATADIR=${myntd_DATADIR:-${myntd_DEFAULT_DATADIR}}
+myntd_USER=${myntd_USER:-${MYNT_USER:-mynt}}
+myntd_GROUP=${myntd_GROUP:-mynt}
+myntd_BIN=${myntd_BIN:-/usr/bin/myntd}
+myntd_NICE=${myntd_NICE:-${NICELEVEL:-0}}
+myntd_OPTS="${myntd_OPTS:-${MYNT_OPTS}}"
+
+name="Mynt Core Daemon"
+description="Mynt cryptocurrency P2P network daemon"
+
+command="/usr/bin/myntd"
+command_args="-pid=\"${myntd_PIDFILE}\" \
+		-conf=\"${myntd_CONFIGFILE}\" \
+		-datadir=\"${myntd_DATADIR}\" \
+		-daemon \
+		${myntd_OPTS}"
+
+required_files="${myntd_CONFIGFILE}"
+start_stop_daemon_args="-u ${myntd_USER} \
+			-N ${myntd_NICE} -w 2000"
+pidfile="${myntd_PIDFILE}"
+
+# The retry schedule to use when stopping the daemon. Could be either
+# a timeout in seconds or multiple signal/timeout pairs (like
+# "SIGKILL/180 SIGTERM/300")
+retry="${myntd_SIGTERM_TIMEOUT}"
+
+depend() {
+	need localmount net
+}
+
+# verify
+# 1) that the datadir exists and is writable (or create it)
+# 2) that a directory for the pid exists and is writable
+# 3) ownership and permissions on the config file
+start_pre() {
+	checkpath \
+	-d \
+	--mode 0750 \
+	--owner "${myntd_USER}:${myntd_GROUP}" \
+	"${myntd_DATADIR}"
+
+	checkpath \
+	-d \
+	--mode 0755 \
+	--owner "${myntd_USER}:${myntd_GROUP}" \
+	"${myntd_PIDDIR}"
+
+	checkpath -f \
+	-o ${myntd_USER}:${myntd_GROUP} \
+	-m 0660 \
+	${myntd_CONFIGFILE}
+
+	checkconfig || return 1
+}
+
+checkconfig()
+{
+	if ! grep -qs '^rpcpassword=' "${myntd_CONFIGFILE}" ; then
+		eerror ""
+		eerror "ERROR: You must set a secure rpcpassword to run myntd."
+		eerror "The setting must appear in ${myntd_CONFIGFILE}"
+		eerror ""
+		eerror "This password is security critical to securing wallets "
+		eerror "and must not be the same as the rpcuser setting."
+		eerror "You can generate a suitable random password using the following"
+		eerror "command from the shell:"
+		eerror ""
+		eerror "bash -c 'tr -dc a-zA-Z0-9 < /dev/urandom | head -c32 && echo'"
+		eerror ""
+		eerror "It is also recommended that you also set alertnotify so you are "
+		eerror "notified of problems:"
+		eerror ""
+		eerror "ie: alertnotify=echo %%s | mail -s \"Mynt Alert\"" \
+			"admin@foo.com"
+		eerror ""
+		return 1
+	fi
+}

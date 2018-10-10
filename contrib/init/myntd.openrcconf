@@ -1,0 +1,33 @@
+# /etc/conf.d/myntd: config file for /etc/init.d/myntd
+
+# Config file location
+#myntd_CONFIGFILE="/etc/mynt/mynt.conf"
+
+# What directory to write pidfile to?  (created and owned by $myntd_USER)
+#myntd_PIDDIR="/var/run/myntd"
+
+# What filename to give the pidfile
+#myntd_PIDFILE="${myntd_PIDDIR}/myntd.pid"
+
+# Where to write myntd data (be mindful that the blockchain is large)
+#myntd_DATADIR="/var/lib/myntd"
+
+# User and group to own myntd process
+#myntd_USER="mynt"
+#myntd_GROUP="mynt"
+
+# Path to myntd executable
+#myntd_BIN="/usr/bin/myntd"
+
+# Nice value to run myntd under
+#myntd_NICE=0
+
+# Additional options (avoid -conf and -datadir, use flags above)
+#myntd_OPTS="-disablewallet"
+
+# The timeout in seconds OpenRC will wait for myntd to terminate
+# after a SIGTERM has been raised.
+# Note that this will be mapped as argument to start-stop-daemon's
+# '--retry' option, which means you can specify a retry schedule
+# here. For more information see man 8 start-stop-daemon.
+myntd_SIGTERM_TIMEOUT=60
